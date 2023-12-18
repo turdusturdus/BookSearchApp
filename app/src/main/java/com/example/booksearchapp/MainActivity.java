@@ -1,5 +1,6 @@
 package com.example.booksearchapp;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import com.google.android.material.snackbar.BaseTransientBottomBar;
@@ -21,6 +22,7 @@ import com.squareup.picasso.Picasso;
 
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.SearchView;
@@ -33,7 +35,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String IMAGE_URL_BASE = "http://covers.openlibrary.org/b/id/";
+    public static final String IMAGE_URL_BASE = "http://covers.openlibrary.org/b/id/";
 
 
     @Override
@@ -62,24 +64,6 @@ public class MainActivity extends AppCompatActivity {
         return super.onCreateOptionsMenu(menu);
     }
 
-    private String prepareQuery(String query) {
-        String[] queryParts = query.split( "\\s+");
-        return TextUtils.join("+", queryParts);
-    }
-
-    private void setupBookListView(List<Book> books) {
-        RecyclerView recyclerView = findViewById(R.id.recyclerview);
-        final BookAdapter adapter = new BookAdapter();
-        adapter.setBooks(books);
-        recyclerView.setAdapter(adapter);
-        recyclerView.setLayoutManager(new LinearLayoutManager( this));
-    }
-
-    public boolean checkNotNullOrEmpty(String text) {
-        return text != null && !TextUtils.isEmpty(text);
-    }
-
-
     private void fetchBooksData(String query) {
         String finalQuery = prepareQuery(query);
         BookService bookService = RetrofitInstance.getRetrofitInstance().create(BookService.class);
@@ -101,15 +85,38 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-    private class BookHolder extends RecyclerView.ViewHolder {
+
+    private String prepareQuery(String query) {
+        String[] queryParts = query.split( "\\s+");
+        return TextUtils.join("+", queryParts);
+    }
+
+    private void setupBookListView(List<Book> books) {
+        RecyclerView recyclerView = findViewById(R.id.recyclerview);
+        final BookAdapter adapter = new BookAdapter();
+        adapter.setBooks(books);
+        recyclerView.setAdapter(adapter);
+        recyclerView.setLayoutManager(new LinearLayoutManager( this));
+    }
+
+    public boolean checkNotNullOrEmpty(String text) {
+        return text != null && !TextUtils.isEmpty(text);
+    }
+
+
+
+    private class BookHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         private final TextView bookTitleTextView;
         private final TextView bookAuthorTextView;
         private final TextView numberOfPagesTextView;
         private final ImageView bookCover;
+        private Book book;
 
         public BookHolder(LayoutInflater inflater, ViewGroup parent) {
             super(inflater.inflate(R.layout.book_list_item, parent,false));
+            itemView.setOnClickListener(this);
+
             bookTitleTextView = itemView.findViewById(R.id.book_title);
             bookAuthorTextView = itemView.findViewById(R.id.book_author);
             numberOfPagesTextView = itemView.findViewById(R.id.number_of_pages);
@@ -118,6 +125,8 @@ public class MainActivity extends AppCompatActivity {
 
         public void bind(Book book) {
             if (book != null && checkNotNullOrEmpty(book.getTitle()) && book.getAuthors() != null) {
+                this.book = book;
+
                 bookTitleTextView.setText(book.getTitle());
                 bookAuthorTextView.setText(TextUtils.join( ", ", book.getAuthors()));
                 numberOfPagesTextView.setText(book.getNumberOfPages());
@@ -129,6 +138,16 @@ public class MainActivity extends AppCompatActivity {
                     bookCover.setImageResource(R.drawable.baseline_book_24);
                 }
             }
+        }
+
+        @Override
+        public void onClick(View v) {
+            Intent intent = new Intent(MainActivity.this, BookDetailsActivity.class);
+            intent.putExtra(BookDetailsActivity.EXTRA_BOOK_DETAILS_TITLE, bookTitleTextView.getText());
+            intent.putExtra(BookDetailsActivity.EXTRA_BOOK_DETAILS_AUTHOR, bookAuthorTextView.getText());
+            intent.putExtra(BookDetailsActivity.EXTRA_BOOK_DETAILS_PAGES, numberOfPagesTextView.getText());
+            intent.putExtra(BookDetailsActivity.EXTRA_BOOK_DETAILS_COVER_ID, book.getCover());
+            startActivity(intent);
         }
     }
 
